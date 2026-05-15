@@ -1,9 +1,9 @@
 from expansion import expand
+from expansion import expand_n
 from result_sorting import sort_result
 from result_displaying import display_result
 from sis_ana import sis
 from coefficients_fitting import fit
-from coefficients_fitting import autofit
 from result_plotting import plot_result
 import pandas as pd
 import torch
@@ -23,17 +23,17 @@ data = pd.read_csv(os.path.join(path, "data.csv"))
 focus = pd.read_csv(os.path.join(path, "focus.csv"))
 
 # 初始输入的扩充
-data_expanded = expand(data)
+data_expanded = expand_n(data,5)
 
 # 确定性独立筛选
-# data_sis = sis(data_expanded, focus.to_numpy(), 10)
-data_sis = data_expanded
+data_sis = sis(data_expanded, focus.to_numpy(), 10)
+# data_sis = data_expanded
 
 #遍历可能的超参数组合
 results2=[]
-for num_epochs in [10]:
-    for batch_size in [16]:
-        for lr  in[1e-2,5e-3,1e-3]:
+for num_epochs in [10,20]:
+    for batch_size in [4,8,16]:
+        for lr  in[1e-2,1e-3,1e-4]:
             #系数拟合
             r2, coef, loss = fit(data_sis, focus.to_numpy(), device,
                                         num_epochs=num_epochs,
@@ -63,7 +63,7 @@ for result in results2_sorted:
 for line in str_show:
     log += '\n{:<15}{:<15}{:<15}{:<15}{:<15}{:<15}{}\n'.format(*line)
 # 输出log
-log_path = os.path.join(path, 'log')
-with open(log_path, 'a', encoding='utf-8') as file:
+log_path = os.path.join(path, 'log.txt')
+with open(log_path, 'w', encoding='utf-8') as file:
     file.write(log)
     

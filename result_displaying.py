@@ -23,6 +23,6 @@ def display_result(results: list[FeatureInformation], n: int, path):
 
     # 输出log
     log_path = os.path.join(path, 'log')
-    with open(log_path, 'w', encoding='utf-8') as file:
+    with open(log_path, 'a', encoding='utf-8') as file:
         file.write(log)
         
