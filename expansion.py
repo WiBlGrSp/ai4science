@@ -3,35 +3,14 @@ import numpy as np
 import itertools
 from numpy.typing import NDArray as ND
 from itertools import product
+from tools import get_contained_chars
+import numpy as np
 
-def expand_n(ori_data:pd.DataFrame,N:int):
-    '''
-    对数据进行N元扩展
-    '''
-    ## 初始化
-    out_data = ori_data.copy()
-    out_num = ori_data.to_numpy()
-    out_str = ori_data.columns.to_numpy()
 
-    ## 变换：[x1, x2, x3, ...] -> [[x1], [x2], [x3],...]
-    out_num = np.hsplit(out_num, out_num.shape[1])
-    out_str = np.hsplit(out_str, out_str.shape[0])
-
-    ## 幂
-    for index, name in enumerate(out_str):
-        
-        num_p1, str_p1 = power(out_num[index], name, 1/2)
-        num_p2, str_p2 = power(out_num[index], name, 2)
-        num_p3, str_p3 = power(out_num[index], name, 1/3)
-        num_p4, str_p4 = power(out_num[index], name, 3)
-        out_num[index] = np.hstack((out_num[index], num_p1, 
-                                    num_p2, num_p3, num_p4))
-        out_str[index] = np.hstack((out_str[index], str_p1,
-                                    str_p2, str_p3, str_p4))
-        
-        num_b, str_b = power(out_num[index], out_str[index], -1)
-        out_num[index] = np.hstack((out_num[index], num_b))
-        out_str[index] = np.hstack((out_str[index], str_b))
+def n_way_cross_expansion(out_num:list[np.ndarray],out_str:list[np.ndarray],N:int):
+    """
+    n元交叉扩张
+    """
     ## 组合
     # 返回所有组合的可能
     combinations = list(itertools.combinations(range(len(out_num)), N))
@@ -47,30 +26,16 @@ def expand_n(ori_data:pd.DataFrame,N:int):
     ## 整合数据
     out_num = np.hstack(out_num)
     out_str = np.hstack(out_str)
-    out_data = pd.DataFrame(out_num, columns=out_str)
-
-    ## 删除异常数据
-    out_data = out_data.loc[:, ~(out_data.isna().any() | \
-                                  out_data.apply(np.isinf).any())]
-    out_data = out_data.loc[:, ~out_data.columns.duplicated()]
-
-    return out_data
-# 把x扩展为x的幂次的列表，在将x1,x2的幂次列表中元素两两组合构成二元交叉的幂次列表
-# 最终输出初始特征集合 + 2个幂次扩展集合 + 二元交叉扩展集合
-def expand(ori_data:pd.DataFrame):
-    '''
-    对数据进行扩展
-    '''
-    ## 初始化
-    out_data = ori_data.copy()
-    out_num = ori_data.to_numpy()
-    out_str = ori_data.columns.to_numpy()
-
-    ## 变换：[x1, x2, x3, ...] -> [[x1], [x2], [x3],...]
-    out_num = np.hsplit(out_num, out_num.shape[1])
-    out_str = np.hsplit(out_str, out_str.shape[0])
-
-    ## 幂
+    return out_num,out_str
+    
+def univariate_transform(in_num, in_str)->tuple[list[np.ndarray],list[np.ndarray]]:
+    """
+    单变量代换封装函数（平方根、平方、立方根、立方、倒数）
+    """
+    
+    out_num = np.hsplit(in_num, in_num.shape[1])
+    out_str = np.hsplit(in_str, in_str.shape[0])
+    
     for index, name in enumerate(out_str):
         
         num_p1, str_p1 = power(out_num[index], name, 1/2)
@@ -85,6 +50,72 @@ def expand(ori_data:pd.DataFrame):
         num_b, str_b = power(out_num[index], out_str[index], -1)
         out_num[index] = np.hstack((out_num[index], num_b))
         out_str[index] = np.hstack((out_str[index], str_b))
+
+    return out_num, out_str
+def remove_same_feature(data:pd.DataFrame,in_feature:pd.DataFrame,char_list)->pd.DataFrame:
+    out_num = data.to_numpy()
+    out_str = data.columns.to_numpy()
+    in_num =  in_feature.to_numpy()
+    in_str =  in_feature.columns.to_numpy()
+     # ---------------------- 1. 获取 in_str 所有包含的符号 ----------------------
+    in_chars = set()
+    for col in in_str:
+        chars = get_contained_chars(col, char_list)
+        in_chars.update(chars)
+
+    # ---------------------- 2. 找出 out_str 中包含相同符号的列索引 ----------------------
+    idx_list = []
+    for idx, col in enumerate(out_str):
+        out_col_chars = get_contained_chars(col, char_list)
+        # 如果有交集 → 要删除
+        if out_col_chars & in_chars:
+            idx_list.append(idx)
+
+    # ---------------------- 3. 删除列 ----------------------
+    if idx_list:
+        out_num = np.delete(out_num, idx_list, axis=1)
+        out_str = np.delete(out_str, idx_list)
+    return pd.DataFrame(out_num,columns=out_str)
+
+
+#迭代扩展符号空间,将上一轮最优特征加入到原始空间，删去含重复符号的,获得扩展空间
+def expand_next(data:pd.DataFrame,in_feature:pd.DataFrame)->pd.DataFrame:
+    # 将原始空间中含有与infeature相同符号的列删除
+    char_list = ['omeg','gam','ras','alpl','kT']
+    data = remove_same_feature(data,in_feature,char_list)
+    ## 初始化
+    out_num = data.to_numpy()
+    out_str = data.columns.to_numpy()
+    in_num =  in_feature.to_numpy()
+    in_str =  in_feature.columns.to_numpy()
+
+    # 将in_num,in_str加入到out_num,out_str
+    out_num = np.hstack((out_num, in_num))  # 横向拼接
+    out_str = np.hstack((out_str, in_str))
+    
+    #把out_str相同符号的列装进一个列表    
+    grouped_index_dic = {}
+    for idx, col_name in enumerate(out_str):  # 拿到 索引idx + 列名
+        chars = get_contained_chars(col_name, char_list)
+        key = tuple(sorted(chars)) if chars else "other"
+        
+        if key not in grouped_index_dic:
+            grouped_index_dic[key] = []
+        grouped_index_dic[key].append(idx)  # 存入【索引】，不是列名！
+    grouped_index_list = list(grouped_index_dic.values())
+    
+    grouped_out_str = []
+    for indices in grouped_index_list:
+        grouped_out_str.append(out_str[indices])
+
+    grouped_out_num = []
+    for indices in grouped_index_list:
+        grouped_out_num.append(out_num[:, indices]) 
+    
+    out_num = grouped_out_num
+    out_str = grouped_out_str
+    
+    # 对out进行二元交叉扩展
 
     ## 组合
     # 返回所有组合的可能
@@ -105,6 +136,54 @@ def expand(ori_data:pd.DataFrame):
     out_str = np.hstack(out_str)
     out_data = pd.DataFrame(out_num, columns=out_str)
 
+    ## 删除异常数据
+    out_data = out_data.loc[:, ~(out_data.isna().any() | \
+                                  out_data.apply(np.isinf).any())]
+    out_data = out_data.loc[:, ~out_data.columns.duplicated()]
+
+    return out_data
+    
+
+
+def expand_n(ori_data:pd.DataFrame,N:int):
+    '''
+    对数据进行N元扩展
+    '''
+    ## 初始化
+    out_data = ori_data.copy()
+    out_num = ori_data.to_numpy()
+    out_str = ori_data.columns.to_numpy()
+    # 单变量代换
+    out_num,out_str= univariate_transform(out_num,out_str)
+    
+    ## n元交叉扩张
+    out_num,out_str = n_way_cross_expansion(out_num,out_str,N)
+
+    out_data = pd.DataFrame(out_num, columns=out_str)
+
+    ## 删除异常数据
+    out_data = out_data.loc[:, ~(out_data.isna().any() | \
+                                  out_data.apply(np.isinf).any())]
+    out_data = out_data.loc[:, ~out_data.columns.duplicated()]
+
+    return out_data
+# 把x扩展为x的幂次的列表，在将x1,x2的幂次列表中元素两两组合构成二元交叉的幂次列表
+# 最终输出初始特征集合 + 2个幂次扩展集合 + 二元交叉扩展集合
+def expand(ori_data:pd.DataFrame):
+    '''
+    对数据进行扩展
+    '''
+    ## 初始化
+    out_data = ori_data.copy()
+    out_num = ori_data.to_numpy()
+    out_str = ori_data.columns.to_numpy()
+    # 单变量代换
+    out_num,out_str= univariate_transform(out_num,out_str)
+
+    ## 2元交叉扩张
+    out_num,out_str = n_way_cross_expansion(out_num,out_str,2)
+    
+    out_data = pd.DataFrame(out_num, columns=out_str)
     ## 删除异常数据
     out_data = out_data.loc[:, ~(out_data.isna().any() | \
                                   out_data.apply(np.isinf).any())]
