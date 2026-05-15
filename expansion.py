@@ -77,25 +77,12 @@ def remove_same_feature(data:pd.DataFrame,in_feature:pd.DataFrame,char_list)->pd
         out_str = np.delete(out_str, idx_list)
     return pd.DataFrame(out_num,columns=out_str)
 
-
-#迭代扩展符号空间,将上一轮最优特征加入到原始空间，删去含重复符号的,获得扩展空间
-def expand_next(data:pd.DataFrame,in_feature:pd.DataFrame)->pd.DataFrame:
-    # 将原始空间中含有与infeature相同符号的列删除
-    char_list = ['omeg','gam','ras','alpl','kT']
-    data = remove_same_feature(data,in_feature,char_list)
-    ## 初始化
-    out_num = data.to_numpy()
-    out_str = data.columns.to_numpy()
-    in_num =  in_feature.to_numpy()
-    in_str =  in_feature.columns.to_numpy()
-
-    # 将in_num,in_str加入到out_num,out_str
-    out_num = np.hstack((out_num, in_num))  # 横向拼接
-    out_str = np.hstack((out_str, in_str))
+#分割符号空间
+def split(in_num,in_str,char_list):
     
-    #把out_str相同符号的列装进一个列表    
+    #具有相同符号的位序放入字典
     grouped_index_dic = {}
-    for idx, col_name in enumerate(out_str):  # 拿到 索引idx + 列名
+    for idx, col_name in enumerate(in_str):  # 拿到 索引idx + 列名
         chars = get_contained_chars(col_name, char_list)
         key = tuple(sorted(chars)) if chars else "other"
         
@@ -104,36 +91,39 @@ def expand_next(data:pd.DataFrame,in_feature:pd.DataFrame)->pd.DataFrame:
         grouped_index_dic[key].append(idx)  # 存入【索引】，不是列名！
     grouped_index_list = list(grouped_index_dic.values())
     
-    grouped_out_str = []
+    out_str = []
     for indices in grouped_index_list:
-        grouped_out_str.append(out_str[indices])
+        out_str.append(in_str[indices])
 
-    grouped_out_num = []
+    out_num = []
     for indices in grouped_index_list:
-        grouped_out_num.append(out_num[:, indices]) 
+        out_num.append(in_num[:, indices]) 
     
-    out_num = grouped_out_num
-    out_str = grouped_out_str
+    return out_num,out_str
+
+#迭代扩展符号空间,将上一轮最优特征加入到原始空间，删去含重复符号的,获得扩展空间
+def expand_next(data:pd.DataFrame,in_feature:pd.DataFrame)->pd.DataFrame:
+    # 将原始空间中含有与infeature相同符号的列删除
+    char_list = ['omeg','gam','ras','alpl','kT']
+    data = remove_same_feature(data,in_feature,char_list)
     
+    ## 初始化
+    out_num = data.to_numpy()
+    out_str = data.columns.to_numpy()
+    in_num =  in_feature.to_numpy()
+    in_str =  in_feature.columns.to_numpy()
+
+    # 将最优特征加入到原始空间
+    out_num = np.hstack((out_num, in_num))  # 横向拼接
+    out_str = np.hstack((out_str, in_str))
+    
+    # 分割符号不同的空间
+    out_num,out_str = split(out_num,out_str,char_list)
+
     # 对out进行二元交叉扩展
+    out_num,out_str = n_way_cross_expansion(out_num,out_str,2)
 
-    ## 组合
-    # 返回所有组合的可能
-    combinations = list(itertools.combinations(range(len(out_num)), 2))
-    # 对每一种组合进行计算
-    for combination in combinations:
-        # 取出一个组合中对应特征的索引
-        idx1, idx2 = combination
-        # 计算组合特征
-        num_c, str_c = combine(out_num[idx1], out_num[idx2],
-                               out_str[idx1], out_str[idx2])
-        # 将组合特征添加到结果中
-        out_num.append(num_c)
-        out_str.append(str_c)
 
-    ## 整合数据
-    out_num = np.hstack(out_num)
-    out_str = np.hstack(out_str)
     out_data = pd.DataFrame(out_num, columns=out_str)
 
     ## 删除异常数据
