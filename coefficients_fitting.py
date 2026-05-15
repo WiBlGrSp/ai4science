@@ -6,7 +6,7 @@ from torch.utils import data
 from torch import nn
 
 # 进行拟合系数的函数
-def fit(x:pd.DataFrame, y:ND, device):
+def fit(x:pd.DataFrame, y:ND, device,num_epochs=10, batch_size=16, lr=1e-2):
     '''
     系数拟合(只考虑一维情况)
     '''
@@ -34,7 +34,7 @@ def fit(x:pd.DataFrame, y:ND, device):
         # 解析解
         # r2, p, loss = analytical_solving(X[:, i], y[:])
         # 神经网络
-        r2, p, loss = net_solving(X[:, i], y[:],num_epochs=5, batch_size=16, lr=0.1)
+        r2, p, loss = net_solving(X[:, i], y[:],num_epochs=num_epochs, batch_size=batch_size, lr=lr)
         
         # 保存结果
         r2_out[i] = r2

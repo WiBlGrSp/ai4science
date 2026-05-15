@@ -2,3 +2,4 @@
 *.pbs
 /data.csv
 /focus.csv
+/__pycache__

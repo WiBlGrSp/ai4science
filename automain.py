@@ -31,14 +31,14 @@ data_sis = data_expanded
 
 #遍历可能的超参数组合
 results2=[]
-for num_epochs in [10,30]:
-    for batch_size in [8,16]:
-        for lr  in[0.1]:
+for num_epochs in [10]:
+    for batch_size in [16]:
+        for lr  in[1e-2,5e-3,1e-3]:
             #系数拟合
-            r2, coef, loss = autofit(data_sis, focus.to_numpy(), device,
+            r2, coef, loss = fit(data_sis, focus.to_numpy(), device,
                                         num_epochs=num_epochs,
                                         batch_size=batch_size,
-                                        lr=lr,use_net=True)
+                                        lr=lr)
 
             # 结果整理
             results = sort_result(data_sis.to_numpy(), 

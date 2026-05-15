@@ -34,7 +34,8 @@ data_sis = data_expanded
 # 系数拟合
 ti = Timer()
 
-r2, coef, loss = fit(data_sis, focus.to_numpy(), device)
+r2, coef, loss = fit(data_sis, focus.to_numpy(), device,
+                     num_epochs=10,batch_size=16,lr=1e-2)
 
 ti.stop()
 print(ti.cumsum())
@@ -42,10 +43,10 @@ print(ti.cumsum())
 # 结果整理
 results = sort_result(data_sis.to_numpy(), 
                       data_sis.columns.to_numpy(),
-                      r2, coef, loss, 1050)
+                      r2, coef, loss, 10)
 
 # 输出日志
-display_result(results, 1050, path)
+display_result(results, 10, path)
 
 # 绘制图像
 plot_result(results[0], focus, path)

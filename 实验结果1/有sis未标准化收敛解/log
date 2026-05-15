@@ -1,4 +1,6 @@
-time:[58.82305097579956]
+num_epochs=150,batch_size=8,lr=0.1
+time = [58.82305097579956]
+
 id   r2             loss           score          model
 
 1    0.4565         3.9391         1.8067         52.2797(sqrt(gam)/sqrt(ras))+0.9489
