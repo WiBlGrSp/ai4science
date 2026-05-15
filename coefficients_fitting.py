@@ -6,7 +6,7 @@ from torch.utils import data
 from torch import nn
 
 # 进行拟合系数的函数
-def fit(x:pd.DataFrame, y:ND, device,num_epochs=10, batch_size=16, lr=1e-2):
+def fit(x:pd.DataFrame, y:ND, device,use_net=True,num_epochs=10, batch_size=16, lr=1e-2):
     '''
     系数拟合(只考虑一维情况)
     '''
@@ -32,9 +32,11 @@ def fit(x:pd.DataFrame, y:ND, device,num_epochs=10, batch_size=16, lr=1e-2):
         if i%50 == 0:
             print("当前拟合特征:",i)
         # 解析解
-        # r2, p, loss = analytical_solving(X[:, i], y[:])
+        if not use_net:
+            r2, p, loss = analytical_solving(X[:, i], y[:])
+        else:
         # 神经网络
-        r2, p, loss = net_solving(X[:, i], y[:],num_epochs=num_epochs, batch_size=batch_size, lr=lr)
+            r2, p, loss = net_solving(X[:, i], y[:],num_epochs=num_epochs, batch_size=batch_size, lr=lr)
         
         # 保存结果
         r2_out[i] = r2
@@ -141,24 +143,6 @@ def net_solving(X:torch.tensor, y:torch.tensor, num_epochs=40, batch_size=100, l
             l.backward()
             trainer.step()
 
-    # #获取模型参数
-    # p = np.array([])
-    # for w in net[0].weight.data.numpy():
-    #     p = np.append(p, w)
-    
-
-    # p = np.append(p, net[0].bias.data.numpy()[0])
-    # p = p.reshape(-1, 1)
-
-    # # 计算R2
-    # X = np.hstack((X, np.ones((X.shape[0], 1))))
-    # print("X：",X.shape)
-    # r2 = get_r2(y, X @ p)
-
-    # # 展平p
-    # p = [item for sublist in p for item in sublist]
-
-    # return r2, p, float(loss(net(features), labels))
         # ========== 新增：还原参数到原始尺度 ==========
     # 模型输出是归一化后的结果，需还原参数以匹配原始数据
     # 原始模型：y = w*X + b → 归一化后：y_norm = w*(X_norm) + b

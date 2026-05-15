@@ -10,13 +10,12 @@ import torch
 import os
 from timer import Timer
 
-from tools import check_bad_columns
-
 # 参数
 num_epochs=10
 batch_size=16
 lr=1e-2
 num_expand=5 #扩展元数
+use_net = False #使用神经网络
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -41,16 +40,16 @@ data_sis = sis(data_expanded, focus.to_numpy(), 10)
 ti = Timer()
 
 r2, coef, loss = fit(data_sis, focus.to_numpy(), device,
+                     use_net=use_net,
                      num_epochs=num_epochs,batch_size=batch_size,lr=lr)
 
 ti.stop()
 print(ti.cumsum())
 
 # 结果整理
-results = sort_result(data_sis.to_numpy(), 
+results= sort_result(data_sis.to_numpy(), 
                       data_sis.columns.to_numpy(),
                       r2, coef, loss, 10)
-
 # 输出日志
 with open(os.path.join(path,"log"),'w', encoding='utf-8') as file:
     file.write(str(ti.cumsum())+'\n')
