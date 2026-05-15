@@ -27,11 +27,14 @@ def fit(x:pd.DataFrame, y:ND, device):
 
     # X的每列数据即为y=a*f(x1,x2,..)+b中的f(x1,x2,..)方程数据
     # 对每列数据分别拟合系数
+    print("待拟合特征总数:",X.shape[1])
     for i in range(X.shape[1]):
+        if i%50 == 0:
+            print("当前拟合特征:",i)
         # 解析解
-        r2, p, loss = analytical_solving(X[:, i], y[:])
+        # r2, p, loss = analytical_solving(X[:, i], y[:])
         # 神经网络
-        # r2, p, loss = net_solving(X[:, i], y[:])
+        r2, p, loss = net_solving(X[:, i], y[:],num_epochs=5, batch_size=16, lr=0.1)
         
         # 保存结果
         r2_out[i] = r2
@@ -98,8 +101,23 @@ def net_solving(X:torch.tensor, y:torch.tensor, num_epochs=40, batch_size=100, l
     if len(y.shape) == 1:
         y = y.reshape(-1, 1)
 
-    features = X.float()
-    labels = y.float()
+    # features = X.float()
+    # labels = y.float()
+
+    # ========== 新增：特征归一化 ==========
+    # 计算均值和标准差（避免使用全局统计量，防止数据泄露）
+    X_mean = torch.mean(X, dim=0, keepdim=True)
+    X_std = torch.std(X, dim=0, keepdim=True) + 1e-8  # 防止除0
+    X_normalized = (X - X_mean) / X_std  # 标准化
+    
+    # 标签也建议归一化（可选，视y的范围而定）
+    y_mean = torch.mean(y, dim=0, keepdim=True)
+    y_std = torch.std(y, dim=0, keepdim=True) + 1e-8
+    y_normalized = (y - y_mean) / y_std
+
+    features = X_normalized.float()
+    labels = y_normalized.float()  # 用归一化后的标签训练
+
 
     # 创建数据迭代器
     data_iter = load_array((features, labels), batch_size)
@@ -123,19 +141,47 @@ def net_solving(X:torch.tensor, y:torch.tensor, num_epochs=40, batch_size=100, l
             l.backward()
             trainer.step()
 
-    # 获取模型参数
-    p = np.array([])
-    for w in net[0].weight.data.numpy():
-        p = np.append(p, w)
+    # #获取模型参数
+    # p = np.array([])
+    # for w in net[0].weight.data.numpy():
+    #     p = np.append(p, w)
+    
 
-    p = np.append(p, net[0].bias.data.numpy()[0])
-    p = p.reshape(-1, 1)
+    # p = np.append(p, net[0].bias.data.numpy()[0])
+    # p = p.reshape(-1, 1)
 
-    # 计算R2
+    # # 计算R2
+    # X = np.hstack((X, np.ones((X.shape[0], 1))))
+    # print("X：",X.shape)
+    # r2 = get_r2(y, X @ p)
+
+    # # 展平p
+    # p = [item for sublist in p for item in sublist]
+
+    # return r2, p, float(loss(net(features), labels))
+        # ========== 新增：还原参数到原始尺度 ==========
+    # 模型输出是归一化后的结果，需还原参数以匹配原始数据
+    # 原始模型：y = w*X + b → 归一化后：y_norm = w*(X_norm) + b
+    # 还原为原始尺度：w_original = w * (y_std / X_std), b_original = b*y_std + y_mean - w_original*X_mean
+# ===================== 归一化后训练完毕，开始还原权重 =====================
+    w_norm = net[0].weight.data.numpy()[0][0]  # 取出归一化后的权重
+    b_norm = net[0].bias.data.numpy()[0]       # 取出归一化后的偏置
+
+    # 还原到原始数据尺度（核心公式）
+    w_original = w_norm * (y_std.item() / X_std.item())
+    b_original = b_norm * y_std.item() + y_mean.item() - w_original * X_mean.item()
+
+    # 构造系数 [w, b]
+    p = np.array([w_original, b_original]).reshape(-1, 1)
+
     X = np.hstack((X, np.ones((X.shape[0], 1))))
-    r2 = get_r2(y, X @ p)
+    y_pred =torch.tensor( X @ p)
+    r2 = get_r2(y, y_pred)
 
-    # 展平p
-    p = [item for sublist in p for item in sublist]
+    # 调用官方 MSE 损失
+    criterion = nn.MSELoss()
+    loss_val = criterion(y,y_pred).item()  # .item() 转成数字
 
-    return r2, p, float(loss(net(features), labels))
+    # 展平系数，返回列表格式
+    p = p.flatten().tolist()
+    return r2,p,loss_val
