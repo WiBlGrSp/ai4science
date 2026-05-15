@@ -59,7 +59,7 @@ while continue_flag:
     if iter_num == 1:
         data_expanded = expand(data)
     else:
-        data_expanded = expand_next(data_expanded,best_feature)
+        data_expanded = expand_next(data,best_feature)
 
     #2.确定性独立筛选（SIS）降维
     data_sis = sis(data_expanded, focus.to_numpy(),10)

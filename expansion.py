@@ -32,9 +32,9 @@ def univariate_transform(in_num, in_str)->tuple[list[np.ndarray],list[np.ndarray
     """
     单变量代换封装函数（平方根、平方、立方根、立方、倒数）
     """
-    
-    out_num = np.hsplit(in_num, in_num.shape[1])
-    out_str = np.hsplit(in_str, in_str.shape[0])
+    out_num = in_num
+    out_str = in_str
+
     
     for index, name in enumerate(out_str):
         
@@ -52,6 +52,7 @@ def univariate_transform(in_num, in_str)->tuple[list[np.ndarray],list[np.ndarray
         out_str[index] = np.hstack((out_str[index], str_b))
 
     return out_num, out_str
+
 def remove_same_feature(data:pd.DataFrame,in_feature:pd.DataFrame,char_list)->pd.DataFrame:
     out_num = data.to_numpy()
     out_str = data.columns.to_numpy()
@@ -119,10 +120,12 @@ def expand_next(data:pd.DataFrame,in_feature:pd.DataFrame)->pd.DataFrame:
     
     # 分割符号不同的空间
     out_num,out_str = split(out_num,out_str,char_list)
+    
+    # 单变量变换
+    out_num,out_str = univariate_transform(out_num,out_str)
 
     # 对out进行二元交叉扩展
     out_num,out_str = n_way_cross_expansion(out_num,out_str,2)
-
 
     out_data = pd.DataFrame(out_num, columns=out_str)
 
@@ -143,6 +146,11 @@ def expand_n(ori_data:pd.DataFrame,N:int):
     out_data = ori_data.copy()
     out_num = ori_data.to_numpy()
     out_str = ori_data.columns.to_numpy()
+    
+    # 分割
+    out_num = np.hsplit(out_num, out_num.shape[1])
+    out_str = np.hsplit(out_str, out_str.shape[0])
+    
     # 单变量代换
     out_num,out_str= univariate_transform(out_num,out_str)
     
@@ -167,6 +175,11 @@ def expand(ori_data:pd.DataFrame):
     out_data = ori_data.copy()
     out_num = ori_data.to_numpy()
     out_str = ori_data.columns.to_numpy()
+    
+    # 分割
+    out_num = np.hsplit(out_num, out_num.shape[1])
+    out_str = np.hsplit(out_str, out_str.shape[0])
+    
     # 单变量代换
     out_num,out_str= univariate_transform(out_num,out_str)
 
@@ -189,7 +202,7 @@ def power(in_num:ND, in_name:ND, p):
         in_num = in_num.reshape(-1, 1)
 
     out_num = np.power(in_num, p)
-    out_name = [f"({n}**{p})" for n in in_name]
+    out_name = [f"(({n})**{p})" for n in in_name]
 
     return out_num, out_name
 def combine_n(in_num_list:list[ND],in_name_list:list[ND]):
