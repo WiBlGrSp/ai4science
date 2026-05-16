@@ -1,5 +1,7 @@
 *.pdf
 *.pbs
-/data.csv
-/focus.csv
 /__pycache__
+*.word
+*.jpg
+/fit.png
+/log
