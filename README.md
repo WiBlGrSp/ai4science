@@ -1,3 +1,9 @@
 # ai4science
 
-A brief description of what this project does and who it's for.
+本项目是人工智能数学原理的大作业，主要实现了符号回归，多元交叉扩展符号空间，迭代式探索符号空间等功能
+
+多元交叉扩展符号空间:运行main.py，在log文件中查看结果，在fit.png中查看最优特征的拟合曲线
+  main.py文件开头运行调整超参数，调整交叉扩展的元数
+
+迭代式探索符号空间：运行loop_main.py，在log文件中查看结果
+  迭代时探索，主要通过将上一轮最优特征加入到原始空间，之后进行单变量代换，二元交叉扩展，SIS筛选，获得本轮拟合的符号空间
