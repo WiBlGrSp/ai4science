@@ -1,7 +1,0 @@
-num_epochs     batch_size     lr             r2             loss           score          model
-
-10             8              0.01           0.457          3.9357         1.8083         52.2035(sqrt(gam)/sqrt(ras))+0.9913
-
-10             8              0.001          0.4536         3.96           1.7973         48.2217(sqrt(gam)/sqrt(ras))+1.3179
-
-10             8              0.1            0.4523         3.9696         1.7931         58.3045(sqrt(gam)/sqrt(ras))+0.5453
