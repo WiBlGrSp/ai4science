@@ -2,6 +2,7 @@
 *.pbs
 /__pycache__
 *.word
+*.docs
 *.jpg
 /fit.png
 /log
