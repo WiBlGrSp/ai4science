@@ -1,5 +1,4 @@
 from expansion import expand
-from expansion import expand_n
 from result_sorting import sort_result
 from result_displaying import display_result
 from sis_ana import sis
@@ -23,7 +22,7 @@ data = pd.read_csv(os.path.join(path, "data.csv"))
 focus = pd.read_csv(os.path.join(path, "focus.csv"))
 
 # 初始输入的扩充
-data_expanded = expand_n(data,5)
+data_expanded = expand(data,5)
 
 # 确定性独立筛选
 data_sis = sis(data_expanded, focus.to_numpy(), 10)

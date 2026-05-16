@@ -1,7 +1,7 @@
 # 导入依赖库
 import os
 import pandas as pd
-from expansion import expand  # 初始特征扩展
+from expansion import expand
 from expansion import expand_next
 from sis_ana import sis  # 确定性独立筛选
 from coefficients_fitting import fit  # 系数拟合
@@ -9,7 +9,6 @@ from result_sorting import sort_result_and_best  # 结果排序
 from result_displaying import display_result  # 结果输出
 import torch
 from feature_information import FeatureInformation
-from expansion import combine
 import itertools
 import numpy as np
 
@@ -34,7 +33,7 @@ def stop_or_not(iter_num, current_score, best_score, patience=5):
     :return: True-终止迭代;False-继续迭代
     """
     # 策略1：达到最大迭代次数终止
-    max_iter = 20
+    max_iter = 5
     if iter_num >= max_iter:
         return True
     # 策略2：连续patience次无分数提升终止
