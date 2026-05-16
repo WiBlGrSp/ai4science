@@ -1,4 +1,5 @@
-# 导入依赖库
+### 迭代式针对性符号空间探索
+
 import os
 import pandas as pd
 from expansion import expand
@@ -11,7 +12,7 @@ import torch
 from feature_information import FeatureInformation
 import itertools
 import numpy as np
-
+from timer import Timer
 
 # 程序启动标识
 print("===============程序开始================p")
@@ -59,6 +60,8 @@ results_cur = None         # 当前轮次临时结果
 with open(os.path.join(path,"log"),'w', encoding='utf-8') as file:
     pass
 
+
+ti=Timer()
 # 迭代特征工程主循环
 while continue_flag:
     # 1. 特征空间扩展：首轮使用全量扩展，后续使用迭代式扩展
@@ -92,3 +95,6 @@ while continue_flag:
         continue_flag = False
     else:
         iter_num += 1
+ti.stop()
+with open(os.path.join(path, 'log'), 'a', encoding='utf-8') as file:
+    file.write(f"{ti.cumsum()}\n")
